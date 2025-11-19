@@ -27,6 +27,7 @@ def get_data():
     ORDER BY pg.id_posto_graduacao
     """
     df = conn.query(query, ttl=600) # Cache data for 10 minutes
+    df['especialidades'] = df['especialidades'].fillna('Nenhuma')
     return df
 
 # Main app
@@ -51,7 +52,7 @@ def main():
     # Add especialidades filter
     # Ensure 'especialidades' column exists and handle potential NaN values before splitting
     especialidades_options = sorted(df['especialidades'].astype(str).str.split(', ').explode().dropna().unique())
-    especialidades = st.sidebar.multiselect("Selecione a Especialidade", options=especialidades_options, default=especialidades_options)
+    especialidades = st.sidebar.multiselect("Selecione a Especialidade", options=especialidades_options)
 
     # Filter dataframe based on selected units, posts, and quadro
     df_selection = df.query(
