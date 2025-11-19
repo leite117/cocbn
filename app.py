@@ -50,8 +50,8 @@ def main():
     quadros = st.sidebar.multiselect("Selecione o Quadro", options=quadros_options, default=quadros_options)
 
     # Add especialidades filter
-    # Ensure 'especialidades' column exists and handle potential NaN values before splitting
-    especialidades_options = sorted(df['especialidades'].astype(str).str.split(', ').explode().dropna().unique())
+    all_especialidades = df['especialidades'].str.split(', ').explode().unique()
+    especialidades_options = sorted([spec for spec in all_especialidades if spec != 'Nenhuma'])
     especialidades = st.sidebar.multiselect("Selecione a Especialidade", options=especialidades_options)
 
     # Filter dataframe based on selected units, posts, and quadro
@@ -85,17 +85,17 @@ def main():
     st.markdown("---")
 
     # Main page
-    st.header("Distribuição de Militares por Posto/Graduação")
-    posto_graduacao_counts = df_selection['posto_graduacao_sigla'].value_counts().reset_index()
-    posto_graduacao_counts.columns = ['Posto/Graduação', 'Quantidade']
-    fig1 = px.bar(
-        posto_graduacao_counts, 
-        x='Posto/Graduação', 
+    st.header("Distribuição de Militares por Unidade")
+    unidade_counts = df_selection['unidade'].value_counts().reset_index()
+    unidade_counts.columns = ['Unidade', 'Quantidade']
+    fig3 = px.bar(
+        unidade_counts, 
+        x='Unidade', 
         y='Quantidade', 
-        title="Militares por Posto/Graduação",
+        title="Militares por Unidade",
         template="plotly_white"
     )
-    st.plotly_chart(fig1)
+    st.plotly_chart(fig3)
 
     st.header("Distribuição de Militares por Quadro")
     quadro_counts = df_selection['quadro_sigla'].value_counts().reset_index()
@@ -109,17 +109,17 @@ def main():
     )
     st.plotly_chart(fig2)
 
-    st.header("Distribuição de Militares por Unidade")
-    unidade_counts = df_selection['unidade'].value_counts().reset_index()
-    unidade_counts.columns = ['Unidade', 'Quantidade']
-    fig3 = px.bar(
-        unidade_counts, 
-        x='Unidade', 
+    st.header("Distribuição de Militares por Posto/Graduação")
+    posto_graduacao_counts = df_selection['posto_graduacao_sigla'].value_counts().reset_index()
+    posto_graduacao_counts.columns = ['Posto/Graduação', 'Quantidade']
+    fig1 = px.bar(
+        posto_graduacao_counts, 
+        x='Posto/Graduação', 
         y='Quantidade', 
-        title="Militares por Unidade",
+        title="Militares por Posto/Graduação",
         template="plotly_white"
     )
-    st.plotly_chart(fig3)
+    st.plotly_chart(fig1)
     
     st.header("Dados dos Militares")
     st.dataframe(df_selection)
