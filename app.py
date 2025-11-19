@@ -8,21 +8,24 @@ import plotly.express as px
 @st.cache_data
 def get_data():
     conn = st.connection('mysql', type='sql')
-    query = """
-    SELECT 
-        m.nome,
-        pg.sigla AS posto_graduacao_sigla,
-        pg.descricao AS posto_graduacao,
-        q.sigla AS quadro_sigla,
-        q.descricao AS quadro,
-        u.sigla AS unidade
-    FROM Militar m
-    JOIN Posto_Graduacao pg ON m.id_posto_graduacao_fk = pg.id_posto_graduacao
-    JOIN Quadro q ON m.id_quadro_fk = q.id_quadro
-    JOIN Unidade u ON m.id_unidade_atual_fk = u.id_unidade
-    ORDER BY pg.id_posto_graduacao
-    """
-    df = conn.query(query, ttl=600) # Cache data for 10 minutes
+        query = """
+        SELECT
+            m.nome,
+            pg.sigla AS posto_graduacao_sigla,
+            pg.descricao AS posto_graduacao,
+            q.sigla AS quadro_sigla,
+            q.descricao AS quadro,
+            u.sigla AS unidade,
+            GROUP_CONCAT(e.tipo_especialidade SEPARATOR ', ') AS especialidades
+        FROM Militar m
+        JOIN Posto_Graduacao pg ON m.id_posto_graduacao_fk = pg.id_posto_graduacao
+        JOIN Quadro q ON m.id_quadro_fk = q.id_quadro
+        JOIN Unidade u ON m.id_unidade_atual_fk = u.id_unidade
+        LEFT JOIN militar_especialidade me ON m.id_militar = me.id_militar_fk
+        LEFT JOIN Especialidade e ON me.id_especialidade_fk = e.id_especialidade
+        GROUP BY m.id_militar, m.nome, pg.sigla, pg.descricao, q.sigla, q.descricao, u.sigla
+        ORDER BY pg.id_posto_graduacao
+        """    df = conn.query(query, ttl=600) # Cache data for 10 minutes
     return df
 
 # Main app
@@ -44,10 +47,25 @@ def main():
     postos = st.sidebar.multiselect("Selecione o Posto/Graduação", options=postos_options, default=postos_options)
     quadros = st.sidebar.multiselect("Selecione o Quadro", options=quadros_options, default=quadros_options)
 
-    # Filter dataframe
+    # Add especialidades filter
+    # Ensure 'especialidades' column exists and handle potential NaN values before splitting
+    especialidades_options = sorted(df['especialidades'].astype(str).str.split(', ').explode().dropna().unique())
+    especialidades = st.sidebar.multiselect("Selecione a Especialidade", options=especialidades_options, default=especialidades_options)
+
+    # Filter dataframe based on selected units, posts, and quadro
     df_selection = df.query(
         "unidade == @unidades and posto_graduacao_sigla == @postos and quadro_sigla == @quadros"
     )
+
+    # Apply especialidades filter
+    if especialidades:
+        # Create a boolean mask to filter rows based on selected specialties
+        # A row is selected if its 'especialidades' string contains any of the selected specialties
+        # Handle potential NaN values by converting to string first
+        mask_especialidades = df_selection['especialidades'].astype(str).apply(
+            lambda x: any(esp.strip() in (s.strip() for s in x.split(',')) for esp in especialidades)
+        )
+        df_selection = df_selection[mask_especialidades]
 
     # --- KPIs ---
     total_militares = df_selection.shape[0]
