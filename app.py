@@ -175,8 +175,8 @@ def main():
     )
     st.plotly_chart(fig1)
     
-    st.header("Dados dos Militares")
-    st.dataframe(df_selection.sort_values(by='id_posto_graduacao').drop('id_posto_graduacao', axis=1))
+   # st.header("Dados dos Militares")
+   # st.dataframe(df_selection.sort_values(by='id_posto_graduacao').drop('id_posto_graduacao', axis=1))
 
 if __name__ == "__main__":
     main()
